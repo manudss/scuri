@@ -287,6 +287,8 @@ ng g scuri:spec --name src/app/app.component.ts --force
 -   `npm link scuri` # links scuri to the current folder/packages - as if - you've installed it like npm i -D scuri
 -   `ng g scuri:spec --name src/app/app.component.ts --force` # force to overwrite the current spec
 
+`yarn run s .:spec --name example/angular-6-app-jest/src/app/app.component.ts --force --dry-run false --type testbedD`
+
 ### Unit Testing
 
 Single run:
