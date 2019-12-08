@@ -52,6 +52,7 @@ describe('<%= className %>: ', () => {
                     // THEN - assert
                     expectedValue = null;
                     expect(actualValue).toEqual(expectedValue);
+                    <% if (meth.indirectOutput) { %><%= meth.indirectOutput.join(' ') %><% } %>
                     // expect(builder.SERVICE).toHaveBeenCalled();
                 });
                 <% } else { %>
@@ -64,6 +65,7 @@ describe('<%= className %>: ', () => {
                         component.<%= meth.name %>(<%= callParam %>);
 
                         // THEN - assert
+                        <% if (meth.indirectOutput) { %><%= meth.indirectOutput.map(v => v && v.expectStatement? v.expectStatement : '').join(' ') %><% } %>
                         // expect(builder.SERVICE).toHaveBeenCalled();
                     });
 
@@ -74,29 +76,7 @@ describe('<%= className %>: ', () => {
                 /** 
                 * Add more test about method <%= meth.name %>
                 **/
-            }); // END - <%= meth.name %> it should 
-
-            describe('it should failed', () => { 
-        
-                it('When given VALUE', () => {
-                    // GIVEN 
-                     <% meth.params.forEach(param => { %>
-                        <%= param.name %> = null; 
-                    <% }); %>
-
-                    // WHEN - act                    
-                    actualValue = component.<%= meth.name %>(<%= callParam %>);
-
-                    // THEN - assert
-                    // expectedValue = {};
-                    // expect(actualValue).toEqual(expectedValue);
-                    // expect(builder.SERVICE).not.toHaveBeenCalled();
-                });
-
-                /** 
-                * Add more test about method <%= meth.name %> when failed 
-                **/
-            }); // END - <%= meth.name %> it should failed
+            }); // END - <%= meth.name %> it should
            
         }); // END - test <%= meth.name %> 
 
@@ -156,6 +136,8 @@ function setup() {
     */ 
     build() {
         component = TestBed.get(<%= className %>);
+
+
 
         // @ts-ignore If it is a component call the ng Init before
         if (component.ngOnInit) { component.ngOnInit();   }

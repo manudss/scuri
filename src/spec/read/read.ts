@@ -1,7 +1,10 @@
 import * as ts from '../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript';
+import {tokenToString} from "../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript";
 
 let program;
 let typeChecker: ts.TypeChecker;
+
+
 
 
 /**
@@ -48,16 +51,17 @@ function read(node: ts.Node) {
     let result: ClassDescription[] = [];
     if (node.kind === ts.SyntaxKind.ClassDeclaration) {
         const classDeclaration = node as ts.ClassDeclaration;
-        const methods = readPublicMethods(node as ts.ClassDeclaration);
+        const className = classDeclaration.name != null ? classDeclaration.name.getText() : 'default';
+        const methods = readPublicMethods(node as ts.ClassDeclaration, className);
         result = [
             {
-                name: classDeclaration.name != null ? classDeclaration.name.getText() : 'default',
+                name: className,
                 constructorParams: readConstructorParams(node as ts.ClassDeclaration),
                 publicMethods: methods.map<string>(m => m.name),
                 methods: methods
             }
         ];
-        console.log ('result : ', result); 
+        // console.log ('result : ', result);
     }
 
     ts.forEachChild(node, n => {
@@ -88,14 +92,14 @@ function readConstructorParams(node: ts.ClassDeclaration): ConstructorParam[] {
     return params;
 }
 
-function readPublicMethods(node: ts.ClassDeclaration): methodeType[] {
+function readPublicMethods(node: ts.ClassDeclaration, className: string): methodeType[] {
     let publicMethods: methodeType[] = [];
 
     ts.forEachChild(node, node => {
         if (node.kind === ts.SyntaxKind.MethodDeclaration) {
             const method = node as ts.MethodDeclaration;
 
-            const func = constructMethodType(method);
+            const func = constructMethodType(method, className);
 
             if (methodIsPublic(method)) {
                 publicMethods.push(func);
@@ -105,50 +109,16 @@ function readPublicMethods(node: ts.ClassDeclaration): methodeType[] {
     return publicMethods;
 }
 
-function constructMethodType(methodNode: ts.MethodDeclaration): methodeType {
+function constructMethodType(methodNode: ts.MethodDeclaration, className: string): methodeType {
 
-    const method: methodeType = {name: methodNode.name.getText()};
+    let method: methodeType = {name: methodNode.name.getText(), parentClass: className};
 
     method.params = methodNode.parameters.map<methodParams>(constructMethodParams);
     const flags: ts.ModifierFlags = ts.getCombinedModifierFlags(methodNode);
-    // @ts-ignore
-    if (typeChecker) {
-        try {
-            const signature: ts.Signature | undefined = typeChecker.getSignatureFromDeclaration(methodNode);
-            let returnType = null;
-            if (signature) {
-                returnType = typeChecker.getReturnTypeOfSignature(signature);
 
-                switch (returnType.getFlags()) {
-                    case ts.TypeFlags.Any:
-                    case ts.TypeFlags.Unknown:
-                        method.returnType = 'any';
-                        method.hasReturn = true;
-                        break;
-                    case ts.TypeFlags.Void:
-                    case ts.TypeFlags.VoidLike:
-                    case ts.TypeFlags.Never:
-                        method.returnType = 'void';
-                        method.hasReturn = false;
-                        break;
+    method = computeReturnType(method, methodNode);
+    method = computeMethodBody(method, methodNode);
 
-                    default:
-                        method.returnType = typeChecker.typeToString(returnType);
-                        method.hasReturn = true;
-                        break;
-                }
-            }
-
-            // const docs = methodNode.jsDoc? methodNode.jsDoc : null; // array of js docs
-
-        } catch (e) {
-            method.returnType = '';
-            method.hasReturn = false;
-        }
-    } else {
-        method.returnType = '';
-        method.hasReturn = false;
-    }
 
     // check if the private flag is part of this binary flag - if not means the method is public
     if ((flags & ts.ModifierFlags.Private) === ts.ModifierFlags.Private) {
@@ -162,7 +132,7 @@ function constructMethodType(methodNode: ts.MethodDeclaration): methodeType {
       method.type = 'public';
     }
 
-    console.log('methodType :', method);
+    // console.log('methodType :', method);
 
 
     return method;
@@ -201,6 +171,142 @@ function constructMethodParams(p: ts.ParameterDeclaration): methodParams {
             };
 }
 
+function computeMethodBody(method: methodeType, methodNode: ts.MethodDeclaration) {
+
+    if (methodNode && methodNode.body && methodNode.body.statements) {
+        methodNode.body.statements.every((statement, index) => {
+            console.log(`Statement (${index}) :`, statement.kind, tokenToString(statement.kind), statement.getFullText());
+
+
+
+            switch (statement.kind) {
+                case ts.SyntaxKind.EmptyStatement:
+                    console.log('Statement : EmptyStatement');
+                    break;
+                    case ts.SyntaxKind.ExpressionStatement:
+                        console.log('Statement : ExpressionStatement');
+                        computeExpressionStatement(method, (statement as ts.ExpressionStatement).expression);
+                        break;
+                    case ts.SyntaxKind.IfStatement:
+                        console.log('Statement : IfStatement');
+                        break;
+                    case ts.SyntaxKind.DoStatement:
+                        console.log('Statement : DoStatement');
+                        break;
+                    case ts.SyntaxKind.WhileStatement:
+                        console.log('Statement : WhileStatement');
+                        break;
+                    case ts.SyntaxKind.ForStatement:
+                        console.log('Statement : ForStatement');
+                        break;
+                    case ts.SyntaxKind.ForInStatement:
+                        console.log('Statement : ForInStatement');
+                        break;
+                    case ts.SyntaxKind.ForOfStatement:
+                        console.log('Statement : ForOfStatement');
+                        break;
+                    case ts.SyntaxKind.ContinueStatement:
+                        console.log('Statement : ContinueStatement');
+                        break;
+                    case ts.SyntaxKind.BreakStatement:
+                        console.log('Statement : BreakStatement');
+                        break;
+                    case ts.SyntaxKind.ReturnStatement:
+                        console.log('Statement : ReturnStatement');
+                        break;
+                    case ts.SyntaxKind.WithStatement:
+                        console.log('Statement : WithStatement');
+                        break;
+                    case ts.SyntaxKind.SwitchStatement:
+                        console.log('Statement : SwitchStatement');
+                        break;
+                    case ts.SyntaxKind.LabeledStatement:
+                        console.log('Statement : LabeledStatement');
+                        break;
+                    case ts.SyntaxKind.ThrowStatement:
+                        console.log('Statement : ThrowStatement');
+                        break;
+                    case ts.SyntaxKind.TryStatement:
+                        console.log('Statement : TryStatement');
+                        break;
+
+            }
+            return true;
+        });
+    }
+
+
+    return method;
+}
+
+function computeExpressionStatement(method: methodeType, expression: ts.Expression) {
+
+    console.log('Expression Statement : ', expression.getText());
+    if (expression.kind === ts.SyntaxKind.BinaryExpression)  {
+        const binaryExpression: ts.BinaryExpression = (expression as ts.BinaryExpression);
+
+        if (binaryExpression.left && binaryExpression.left.kind === ts.SyntaxKind.PropertyAccessExpression) {
+            if (!method.indirectOutput) method.indirectOutput = [];
+            // @ts-ignore
+            const name = (binaryExpression.left.name)? binaryExpression.left.name.getText() : binaryExpression.left.getLastToken().getText();
+
+            method.indirectOutput.push({
+                name: name,
+                expectStatement: `expect(component.${name}).toEqual(null /** todo **/); // Test indirect output : ${expression.getText()}`,
+                fullText: expression.getText()
+            });
+            // @ts-ignore
+            console.log('Left Expression : ', binaryExpression.left.getText(), binaryExpression.left.getLastToken().getText(), binaryExpression.left.getFirstToken().getText(),  name)
+        }
+    }
+
+
+    return method;
+
+}
+
+function computeReturnType(method: methodeType, methodNode: ts.MethodDeclaration) {
+    // @ts-ignore
+    if (typeChecker) {
+        try {
+            const signature: ts.Signature | undefined = typeChecker.getSignatureFromDeclaration(methodNode);
+            let returnType = null;
+            if (signature) {
+                returnType = typeChecker.getReturnTypeOfSignature(signature);
+
+                switch (returnType.getFlags()) {
+                    case ts.TypeFlags.Any:
+                    case ts.TypeFlags.Unknown:
+                        method.returnType = 'any';
+                        method.hasReturn = true;
+                        break;
+                    case ts.TypeFlags.Void:
+                    case ts.TypeFlags.VoidLike:
+                    case ts.TypeFlags.Never:
+                        method.returnType = 'void';
+                        method.hasReturn = false;
+                        break;
+
+                    default:
+                        method.returnType = typeChecker.typeToString(returnType);
+                        method.hasReturn = true;
+                        break;
+                }
+            }
+
+            // const docs = methodNode.jsDoc? methodNode.jsDoc : null; // array of js docs
+
+        } catch (e) {
+            method.returnType = '';
+            method.hasReturn = false;
+        }
+    } else {
+        method.returnType = '';
+        method.hasReturn = false;
+    }
+    return method;
+}
+
 function methodIsPublic(methodNode: ts.MethodDeclaration) {
     const flags = ts.getCombinedModifierFlags(methodNode);
     // check if the private flag is part of this binary flag - if not means the method is public
@@ -229,14 +335,22 @@ export type ConstructorParam = {
     importPath?: string;
 };
 
-export type methodeType = {
+export class indirectOutput {
     name: string;
-    isPublic?: boolean,
-    type?: 'public' | 'private' | 'protected',
-    body?: string,
-    params?: methodParams[],
-    returnType?: string,
-    hasReturn?: boolean,
+    fullText: string;
+    expectStatement?: string; // Will compute expect Statement.
+}
+
+export class methodeType {
+    name: string;
+    parentClass?: string;
+    isPublic?: boolean;
+    type?: 'public' | 'private' | 'protected';
+    body?: string;
+    params?: methodParams[];
+    returnType?: string;
+    indirectOutput?: indirectOutput[];
+    hasReturn?: boolean;
     [key: string]: any;
 }
 
