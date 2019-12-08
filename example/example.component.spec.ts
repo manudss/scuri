@@ -1,4 +1,5 @@
 
+import { Service } from './angular-6-app-jest/src/app/service';
 import { ExampleComponent } from './example.component';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { autoSpy } from 'autoSpy';
@@ -23,7 +24,7 @@ describe('ExampleComponent: ', () => {
         describe('when "aMethod()" is called', () => {
             
 
-            let actualValue: , expectedValue: ;
+            
                 
              let dep: string;
                 let service: Object;
@@ -49,6 +50,7 @@ describe('ExampleComponent: ', () => {
                         component.aMethod(dep, service);
 
                         // THEN - assert
+                        
                         // expect(builder.SERVICE).toHaveBeenCalled();
                     });
 
@@ -59,38 +61,14 @@ describe('ExampleComponent: ', () => {
                 /** 
                 * Add more test about method aMethod
                 **/
-            }); // END - aMethod it should 
-
-            describe('it should failed', () => { 
-        
-                it('When given VALUE', () => {
-                    // GIVEN 
-                     
-                        dep = null; 
-                    
-                        service = null; 
-                    
-
-                    // WHEN - act                    
-                    actualValue = component.aMethod(dep, service);
-
-                    // THEN - assert
-                    // expectedValue = {};
-                    // expect(actualValue).toEqual(expectedValue);
-                    // expect(builder.SERVICE).not.toHaveBeenCalled();
-                });
-
-                /** 
-                * Add more test about method aMethod when failed 
-                **/
-            }); // END - aMethod it should failed
+            }); // END - aMethod it should
            
         }); // END - test aMethod 
 
         describe('when "anotherMethod()" is called', () => {
             
 
-            let actualValue: , expectedValue: ;
+            
                 
              let param1: string;
                 let parame2: Object;
@@ -118,6 +96,7 @@ describe('ExampleComponent: ', () => {
                         component.anotherMethod(param1, parame2, param3);
 
                         // THEN - assert
+                        expect(component.publicProperty).toEqual(null /** todo **/); // Test indirect output : this.publicProperty = true expect(component.privateProperty).toEqual(null /** todo **/); // Test indirect output : this.privateProperty = param1
                         // expect(builder.SERVICE).toHaveBeenCalled();
                     });
 
@@ -128,40 +107,16 @@ describe('ExampleComponent: ', () => {
                 /** 
                 * Add more test about method anotherMethod
                 **/
-            }); // END - anotherMethod it should 
-
-            describe('it should failed', () => { 
-        
-                it('When given VALUE', () => {
-                    // GIVEN 
-                     
-                        param1 = null; 
-                    
-                        parame2 = null; 
-                    
-                        param3 = null; 
-                    
-
-                    // WHEN - act                    
-                    actualValue = component.anotherMethod(param1, parame2, param3);
-
-                    // THEN - assert
-                    // expectedValue = {};
-                    // expect(actualValue).toEqual(expectedValue);
-                    // expect(builder.SERVICE).not.toHaveBeenCalled();
-                });
-
-                /** 
-                * Add more test about method anotherMethod when failed 
-                **/
-            }); // END - anotherMethod it should failed
+            }); // END - anotherMethod it should
            
         }); // END - test anotherMethod 
 
         describe('when "fourth()" is called', () => {
             
 
+            
             let actualValue: string, expectedValue: string;
+            
                 
              
 
@@ -185,6 +140,7 @@ describe('ExampleComponent: ', () => {
                     // THEN - assert
                     expectedValue = null;
                     expect(actualValue).toEqual(expectedValue);
+                    
                     // expect(builder.SERVICE).toHaveBeenCalled();
                 });
                 
@@ -194,27 +150,7 @@ describe('ExampleComponent: ', () => {
                 /** 
                 * Add more test about method fourth
                 **/
-            }); // END - fourth it should 
-
-            describe('it should failed', () => { 
-        
-                it('When given VALUE', () => {
-                    // GIVEN 
-                     
-
-                    // WHEN - act                    
-                    actualValue = component.fourth();
-
-                    // THEN - assert
-                    // expectedValue = {};
-                    // expect(actualValue).toEqual(expectedValue);
-                    // expect(builder.SERVICE).not.toHaveBeenCalled();
-                });
-
-                /** 
-                * Add more test about method fourth when failed 
-                **/
-            }); // END - fourth it should failed
+            }); // END - fourth it should
            
         }); // END - test fourth 
 
@@ -253,7 +189,7 @@ describe('ExampleComponent: ', () => {
 **/
 function setup() {
   let mep:string;
-const service1: Object = autoSpy<Object>(Object, 'Object');
+const service1: Service = autoSpy<Service>(Service, 'Service');
     let component: ExampleComponent;
     let fixture: ComponentFixture<ExampleComponent>;
   const builder = {
@@ -266,7 +202,7 @@ service1,
     */ 
     default() {
         TestBed.configureTestingModule({
-            providers: [ExampleComponent, { provide: Object, useValue: service1 }]
+            providers: [ExampleComponent, { provide: Service, useValue: service1 }]
         });
 
       return builder;
@@ -276,6 +212,8 @@ service1,
     */ 
     build() {
         component = TestBed.get(ExampleComponent);
+
+
 
         // @ts-ignore If it is a component call the ng Init before
         if (component.ngOnInit) { component.ngOnInit();   }
@@ -287,7 +225,7 @@ service1,
     compile() {
         TestBed.configureTestingModule({
             declarations: [ExampleComponent],
-            providers: [{ provide: Object, useValue: service1 }]
+            providers: [{ provide: Service, useValue: service1 }]
         }).compileComponents();
 
       return builder;
