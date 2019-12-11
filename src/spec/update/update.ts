@@ -2,7 +2,7 @@ import { EOL } from 'os';
 import * as ts from '../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript';
 import { findNodes, insertAfterLastOccurrence } from '../../../lib/utility/ast-utils';
 import { Change, InsertChange, RemoveChange } from '../../../lib/utility/change';
-import { ConstructorParam } from '../read/read';
+import {ConstructorParam} from '../read/read-class.model';
 export const i = insertAfterLastOccurrence;
 
 export function addMissing(

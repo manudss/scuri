@@ -1,5 +1,10 @@
 import {Service} from "./angular-6-app-jest/src/app/service";
 
+import { Component } from '@angular/core';
+
+@Component({
+    selector: 'exemple'
+})
 export class ExampleComponent {
     publicProperty: boolean;
 
