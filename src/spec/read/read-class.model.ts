@@ -13,6 +13,7 @@ export type ConstructorParam = {
 export class indirectOutput {
     name: string;
     fullText: string;
+    type: string;
     expectStatement?: string; // Will compute expect Statement.
 }
 

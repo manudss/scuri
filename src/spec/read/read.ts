@@ -258,8 +258,12 @@ export class ReadClass {
                 // @ts-ignore
                 const name = (binaryExpression.left.name)? binaryExpression.left.name.getText() : binaryExpression.left.getLastToken().getText();
 
+                const symbol = this.typeChecker.getTypeAtLocation(binaryExpression);
+                console.log('Symbole : ', symbol);
+
                 method.indirectOutput.push({
                     name: name,
+                    type: '', // this.typeChecker.typeToString(type)
                     expectStatement: `expect(component.${name}).toEqual(null /** todo **/); // Test indirect output : ${expression.getText()}`,
                     fullText: expression.getText()
                 });

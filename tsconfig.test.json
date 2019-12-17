@@ -19,6 +19,6 @@
     "target": "es6",
     "types": ["jasmine", "node"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "lib/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "src/**/*.spec.ts", "lib/**/*.ts"],
   "exclude": ["src/files/**/*.*", "tests/spec/files/**/*.*", "example/**/*.*", "**/files/"]
 }
