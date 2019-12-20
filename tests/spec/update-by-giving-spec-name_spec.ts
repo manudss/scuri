@@ -36,6 +36,7 @@ describe('Calling update and passing the spec file in --name ', () => {
         const runner = new SchematicTestRunner('schematics', collectionPath);
         // act
         const errors = [];
+        // @ts-ignore
         runner.logger.pipe(filter(v => v.level === 'error')).subscribe(v => errors.push(v));
         runner.runSchematic('spec', { name: './c.spec.ts', update: true }, tree);
         // assert

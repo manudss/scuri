@@ -36,6 +36,7 @@ describe('Calling update on existing specs without setup function', () => {
         const runner = new SchematicTestRunner('schematics', collectionPath);
         // act
         const errors = [];
+        // @ts-ignore
         runner.logger.pipe(filter(v => v.level === 'error')).subscribe(v => errors.push(v));
         runner.runSchematic('spec', { name: './c.ts', update: true }, tree);
         // assert

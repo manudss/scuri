@@ -1,6 +1,15 @@
 import * as ts from '../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript';
-import {tokenToString} from '../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript';
-import {ClassDescription, ConstructorParam, methodeType, methodParams} from './read-class.model';
+import {
+    tokenToString
+} from '../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript';
+import {
+    ClassDescription,
+    ConstructorParam, indirectOutput,
+    methodeType,
+    methodParams,
+    propertiesList,
+    propertiesType
+} from './read-class.model';
 
 /*let program;
 let this.typeChecker: ts.TypeChecker;*/
@@ -31,6 +40,7 @@ export class ReadClass {
     private sourceFile: ts.SourceFile;
     private program: ts.Program;
     private typeChecker: ts.TypeChecker;
+    private properties: propertiesList = {};
 
 
     constructor(
@@ -66,7 +76,8 @@ export class ReadClass {
                     name: className,
                     constructorParams: this.readConstructorParams(node as ts.ClassDeclaration),
                     publicMethods: methods.map<string>(m => m.name),
-                    methods: methods
+                    methods: methods,
+                    properties: this.properties
                 }
             ];
             // console.log ('result : ', result);
@@ -112,6 +123,11 @@ export class ReadClass {
                 if (this.methodIsPublic(method)) {
                     publicMethods.push(func);
                 }
+            } else if (node.kind === ts.SyntaxKind.PropertyDeclaration) {
+
+                const property = this.computeProperties(node as ts.PropertyDeclaration, className);
+                this.properties[property.name] = property;
+                console.log ('PropertyDeclaration :', property);
             }
         });
         return publicMethods;
@@ -248,6 +264,7 @@ export class ReadClass {
     }
 
     private computeExpressionStatement(method: methodeType, expression: ts.Expression) {
+        if (!expression) { return method; }
 
         console.log('Expression Statement : ', expression.getText());
         if (expression.kind === ts.SyntaxKind.BinaryExpression)  {
@@ -258,15 +275,18 @@ export class ReadClass {
                 // @ts-ignore
                 const name = (binaryExpression.left.name)? binaryExpression.left.name.getText() : binaryExpression.left.getLastToken().getText();
 
-                const symbol = this.typeChecker.getTypeAtLocation(binaryExpression);
-                console.log('Symbole : ', symbol);
+                /*const symbol = this.typeChecker.getTypeAtLocation(binaryExpression);
+                console.log('Symbole : ', symbol);*/
 
-                method.indirectOutput.push({
+                const items: indirectOutput = {
                     name: name,
-                    type: '', // this.typeChecker.typeToString(type)
+                    type: (this.properties[name] && this.properties[name].type)? this.properties[name].type as string : '',
                     expectStatement: `expect(component.${name}).toEqual(null /** todo **/); // Test indirect output : ${expression.getText()}`,
                     fullText: expression.getText()
-                });
+                };
+
+
+                method.indirectOutput.push(items);
                 // @ts-ignore
                 console.log('Left Expression : ', binaryExpression.left.getText(), binaryExpression.left.getLastToken().getText(), binaryExpression.left.getFirstToken().getText(),  name)
             }
@@ -333,6 +353,69 @@ export class ReadClass {
             const match = fullText.match(new RegExp(`import.*${p.type}.*from.*('|")(.*)('|")`)) || [];
             return { ...p, importPath: match[2] }; // take the 2 match     1-st^^^  ^^2-nd
         });
+    }
+
+    private computeProperties(propertiesNode: ts.PropertyDeclaration, className: string): propertiesType {
+
+        let propertiesElement: propertiesType = {name: propertiesNode.name.getText(), parentClass: className};
+
+        const flags: ts.ModifierFlags = ts.getCombinedModifierFlags(propertiesNode);
+
+        this.computepropertiesType(propertiesElement, propertiesNode);
+
+        // check if the private flag is part of this binary flag - if not means the method is public
+        if ((flags & ts.ModifierFlags.Private) === ts.ModifierFlags.Private) {
+            propertiesElement.isPublic = false;
+            propertiesElement.modifier = 'private';
+        } else if ((flags & ts.ModifierFlags.Protected) === ts.ModifierFlags.Protected) {
+            propertiesElement.isPublic = false;
+            propertiesElement.modifier = 'protected';
+        } else {
+            propertiesElement.isPublic = true;
+            propertiesElement.modifier = 'public';
+        }
+
+        // console.log('methodType :', method);
+
+
+        return propertiesElement;
+    }
+
+    private computepropertiesType(propertiesElement: propertiesType, propertiesNode: ts.PropertyDeclaration) {
+        // @ts-ignore
+        if (this.typeChecker && propertiesNode.type) {
+            try {
+                const propertyType: ts.Type | undefined = this.typeChecker.getTypeFromTypeNode(propertiesNode.type);
+
+                if (propertyType) {
+                    switch (propertyType.getFlags()) {
+                        case ts.TypeFlags.Any:
+                        case ts.TypeFlags.Unknown:
+                            propertiesElement.type = 'any';
+                            break;
+                        case ts.TypeFlags.Void:
+                        case ts.TypeFlags.VoidLike:
+                        case ts.TypeFlags.Never:
+                            propertiesElement.type = 'void';
+                            break;
+
+                        default:
+                            propertiesElement.type = this.typeChecker.typeToString(propertyType);
+                            break;
+                    }
+                }
+
+                // const docs = methodNode.jsDoc? methodNode.jsDoc : null; // array of js docs
+
+            } catch (e) {
+                propertiesElement.returnType = '';
+                propertiesElement.hasReturn = false;
+            }
+        } else {
+            propertiesElement.returnType = '';
+            propertiesElement.hasReturn = false;
+        }
+        return propertiesElement;
     }
 
 }

@@ -1,7 +1,7 @@
 import {ReadClass} from '../../src/spec/read/read';
 
 
-fdescribe('ReadClass', () => {
+describe('ReadClass', () => {
     it('when process a method with set a property', () => {
 
         // arrange
@@ -25,12 +25,15 @@ fdescribe('ReadClass', () => {
       `;
         const read = new ReadClass(fileName, fileContents);
         // Spy
-       const computeMethodBody = spyOn((read as any), 'computeMethodBody');
-       const computeExpressionStatement = spyOn((read as any), 'computeExpressionStatement');
+       const computeMethodBody = spyOn<any>(read, 'computeMethodBody');
+       const computeExpressionStatement = spyOn<any>(read, 'computeExpressionStatement');
         computeMethodBody.and.callThrough();
         computeExpressionStatement.and.callThrough();
 
-        // act
+
+
+
+      // act
         const classDef = read.process();
         // assert
         expect(classDef.length).toEqual(1);
@@ -44,6 +47,7 @@ fdescribe('ReadClass', () => {
         expect(indirectOutput[0].type).toEqual('boolean');
         expect(indirectOutput[1].name).toEqual('privateProperty');
         expect(indirectOutput[1].fullText).toEqual('this.privateProperty = param1');
+        expect(indirectOutput[1].type).toEqual('string');
 
         expect(computeMethodBody).toHaveBeenCalled();
         expect(computeExpressionStatement).toHaveBeenCalledTimes(2);

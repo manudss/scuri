@@ -1,8 +1,10 @@
+
 export type ClassDescription = {
     name: string;
     constructorParams: ConstructorParam[];
     publicMethods: string[];
     methods: methodeType[];
+    properties?: propertiesList;
 };
 export type ConstructorParam = {
     name: string;
@@ -37,3 +39,14 @@ export type methodParams = {
     importPath?: string;
     defaultValue?: any;
 }
+
+export class propertiesType {
+    name: string;
+    isPublic?: boolean;
+    parentClass?: string;
+    modifier?: 'public' | 'private' | 'protected';
+    type?: string;
+    [key: string]: any;
+}
+
+export type propertiesList = {[name: string]: propertiesType};
