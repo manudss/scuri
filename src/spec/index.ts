@@ -14,11 +14,36 @@ import { EOL } from 'os';
 import { Change, InsertChange, RemoveChange } from '../../lib/utility/change';
 import { readClassNamesAndConstructorParams } from './read/read';
 import { addMissing, update as updateFunc } from './update/update';
+import {findModule} from "../../lib/utility/find-module";
+import * as ts from "../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript";
+import {getDecoratorMetadata, getMetadataField} from "../../lib/utility/ast-utils";
 
 class SpecOptions {
     name: string;
     update?: boolean;
     type?: string;
+}
+
+class moduleDataItem {
+    name: string;
+    import?: string;
+    fullText?: string;
+    useValue?: boolean;
+}
+
+class importFile {
+    name?: string;
+    from?: string;
+    fullText: string;
+}
+
+class moduleData {
+    name?: string;
+    importsFiles: importFile[];
+    declarations?:  moduleDataItem[];
+        imports?:  moduleDataItem[];
+    providers?:  moduleDataItem[];
+    bootstrap?:  moduleDataItem[];
 }
 
 export function spec({ name, update, type }: SpecOptions): Rule {
@@ -132,6 +157,70 @@ function applyChanges(tree: Tree, specFilePath: string, changes: Change[], act: 
     tree.commitUpdate(recorder);
 }
 
+let getModuleMetaData = function (ngModulesMetadata: ts.ObjectLiteralExpression, type: string) {
+    const metadataField = getMetadataField(ngModulesMetadata, type);
+    console.log('Metadata : ', metadataField);
+    const metaDatas: moduleDataItem[] = [];
+
+    if (!metadataField) return metaDatas;
+
+    // @ts-ignore
+    metadataField[0]._children.map( (node) => {
+        let name = node.name? node.name.getText(): '';
+        metaDatas.push({name: name,
+            fullText: node.getFullText()
+        });
+    });
+
+    return metaDatas;
+};
+
+function findModuleInfo (tree: Tree, path: string): moduleData | null {
+    // Find Module
+    const module = findModule(tree, path);
+    console.log('Module : ', module);
+
+    const content = tree.read(module);
+    if (!content) { return null; }
+    const moduleFileName = basename(normalize(module));
+
+    const sourceFile = ts.createSourceFile(moduleFileName, content.toString('utf8'), ts.ScriptTarget.ES2015, true);
+
+    console.log('Module Content : ', sourceFile);
+    const imports: importFile[] = [];
+
+    ts.forEachChild(sourceFile, n => {
+
+        if (ts.isClassElement(n)) {
+            console.log('Class Node ');
+        }
+
+        if (n.kind == ts.SyntaxKind.ImportDeclaration) {
+
+            const text = {fullText : n.getText()};
+            imports.push(text);
+        }
+    });
+
+    const ngModulesMetadata: ts.ObjectLiteralExpression = getDecoratorMetadata(sourceFile, 'NgModule', '@angular/core').shift() as ts.ObjectLiteralExpression;
+
+    const name = ngModulesMetadata && ngModulesMetadata ? ngModulesMetadata.getText() : '';
+    const moduleMetaData = {
+        name: name,
+        importsFiles: imports,
+        declarations:  getModuleMetaData(ngModulesMetadata, 'declarations'),
+        imports:  getModuleMetaData(ngModulesMetadata, 'imports'),
+        providers:  getModuleMetaData(ngModulesMetadata, 'providers'),
+        bootstrap:  getModuleMetaData(ngModulesMetadata, 'bootstrap'),
+    };
+
+
+    console.log('Imports : ', imports, moduleMetaData);
+
+    return moduleMetaData;
+
+}
+
 function createNewSpec(name: string, tree: Tree, logger: Logger, type: string = 'scuri') {
     const content = tree.read(name);
     logger.info('Create file ' + name);
@@ -155,7 +244,8 @@ function createNewSpec(name: string, tree: Tree, logger: Logger, type: string = 
         const path = name.split(fileName)[0]; // split on the filename - so we get only an array of one item
 
         const { params, className, publicMethods, methods } = parseClassUnderTestFile(name, content);
-        
+        const module: moduleData | null = findModuleInfo(tree, path);
+
         const templateSource = apply(url(`./files/${type}`), [
             applyTemplates({
                 // the name of the new spec file
@@ -164,6 +254,7 @@ function createNewSpec(name: string, tree: Tree, logger: Logger, type: string = 
                 className: className,
                 publicMethods,
                 methods,
+                module,
                 declaration: toDeclaration(),
                 provider: toProvider(),
                 builderExports: toBuilderExports(),
