@@ -1,14 +1,24 @@
-# SCuri[*](#scuri-name)
+# SCuri[\*](#scuri-name)
 
->It creates/updates unit tests for Angular components/services/directives/etc.
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 
+[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-)
 
-_Powered by [Schematics](https://angular.io/guide/schematics) and [TypeScript compiler](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API)_. 
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-[**VS Code extension**](https://marketplace.visualstudio.com/items?itemName=gparlakov.scuri-code) available!
+**Automates unit test boilerplate** for **Angular** components/services/directives/etc. It will **generate** spec for you and help you **update** it when dependencies are added or removed!
+
+_Powered by [Schematics](https://angular.io/guide/schematics) and [TypeScript compiler](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API)_.
+
+👩‍💻[**VS Code extension**](https://marketplace.visualstudio.com/items?itemName=gparlakov.scuri-code) available!
+
+🚀[Want to use SCuri in **enterprise** environment?](#scuri-for-enterprise)
+
+🤵[Need commercial-quality coverage for SCuri?](#scuri-for-enterprise)
+
 ## Why?
 
-**After** a component has been **created** it is **boring and tedious** to do the tests - and we often **don't**. SCuri[*](#scuri-name) tries to jump start that by walking the component's constructor, parsing the dependencies and creating mocks for each of them, and then including them in the spec.
+**After** a component has been **created** it is **boring and tedious** to do the tests - and we often **don't**. SCuri[\*](#scuri-name) tries to jump start that by walking the component's constructor, parsing the dependencies and creating mocks for each of them, and then including them in the spec.
 
 ## Features
 
@@ -18,7 +28,7 @@ _Powered by [Schematics](https://angular.io/guide/schematics) and [TypeScript co
 
 The video shows how to use `schematics scuri:spec --name src\app\my-com\my-com.component.ts` to create a spec from scratch (if already created see **update** or use **--force** to overwrite).
 
->For Angular CLI >= 6 `ng g scuri:spec --name src\app\my-com\my-com.component.ts` could be used instead.
+> For Angular CLI >= 6 `ng g scuri:spec --name src\app\my-com\my-com.component.ts` could be used instead.
 
 See details [down here](#create-spec-from-scratch).
 
@@ -33,7 +43,7 @@ Shows how we begin with an outdated test:
 
 And after `schematics scuri:spec --name src\app\my-com\my-com.component.ts --update` command we get the updated test - dependency and a scaffold test case added.
 
->For Angular CLI >= 6 `ng g scuri:spec --name src\app\my-com\my-com.component.ts --update` could be used instead.
+> For Angular CLI >= 6 `ng g scuri:spec --name src\app\my-com\my-com.component.ts --update` could be used instead.
 
 See details [down here](#update-existing-spec)
 
@@ -47,12 +57,36 @@ Needs tsconfig path setup -> [there](#autospy-path-in-tsconfigjson).
 
 ## Getting started / Setup
 
-```
-npm install -D scuri
-ng g scuri:spec --name src/app/app.component.ts
-```
+Using VS Code? Just install the [**SCuri** VS Code extension](https://marketplace.visualstudio.com/items?itemName=gparlakov.scuri-code)
 
-If you gen error of the `Error: Invalid rule result: Function().` see the [troubleshooting section below](#rule-result-function).
+### Command line setup
+
+1. Install deps
+    ```bash
+    npm install -D scuri
+    ng g scuri:spec --name src/app/app.component.ts
+    ```
+2. Generate autospy
+    ```bash
+    ng g scuri:autospy
+    ```
+    [Details and older Angular versions](#autospy-1)
+3. Tell **Typescript** where to find `autospy` by adding `autospy` to `paths`:
+    ```json
+    {
+        ...
+        "compilerOptions": {
+            ...
+            "baseUrl": ".",
+            "paths": {
+                "autospy": ["./src/auto-spy"]
+            }
+        }
+    }
+    ```
+    Details [here](#Autospy-and-Typescript)
+
+If you get `Error: Invalid rule result: Function().` see the [troubleshooting section below](#rule-result-function).
 
 ## Details
 
@@ -104,11 +138,36 @@ Requires `--name` - an existing `.ts` file with one `class` (Component/Service/D
 
 To generate an `auto-spy.ts` file with the type and function which can be used for automating mock creation, use:
 
--   `schematics scuri:autospy` - for angular 5 and previous
--   `ng g scuri:autospy` for angular 6 and up
-    Both cases requires `npm i scuri` (or `npm i -g scuri`) and the first requires `npm i -g @angular-devkit/schematics-cli`.
+`ng g scuri:autospy`
 
-It supports the following flags:
+#### Using older versions of Angular?
+
+-   Angular v5, v4, v2:
+    `bash npm i -g @angular-devkit/schematics-cli npm i -D scuri schematics scuri:autospy --legacy`
+    _Notice the --legacy flag. It's required due to typescript being less than 2.8. See flags below_
+
+#### Using Jest
+
+`ng g scuri:autospy --for jest`
+
+Or
+
+`schematics scuri:autospy --for jest`
+
+Versions and flags
+
+| angular | jest | jasmine | command                                        |
+| ------- | ---- | ------- | ---------------------------------------------- |
+| 5       |      | V       | `schematics scuri:autospy --legacy`            |
+| 5       | V    |         | `schematics scuri:autospy --for jest --legacy` |
+| 6       |      | V       | `ng g scuri:autospy`                           |
+| 6       | V    |         | `ng g scuri:autospy --for jest`                |
+| 7       |      | V       | `ng g scuri:autospy`                           |
+| 7       | V    |         | `ng g scuri:autospy --for jest`                |
+| 8       |      | V       | `ng g scuri:autospy`                           |
+| 8       | V    |         | `ng g scuri:autospy --for jest`                |
+
+Flags:
 
 -   `--for` with accepted values `jest` and `jasmine` (default is `jasmine`)
 -   `--legacy` for generating a type compatible with typescript < 2.8 (namely the conditional types feature)
@@ -117,7 +176,7 @@ Examples:
 `ng g scuri:autospy --for jest --legacy` would generate a ts<2.8 jest compatible `autoSpy` type and function
 `ng g scuri:autospy` would generate a ts>2.8 jasmine compatible `autoSpy` type and function
 
-### Autospy path in `tsconfig.json`
+### Autospy and Typescript
 
 After creating the `auto-spy.ts` file as result of the `scuri:autospy` schematic invocation we need to make sure its properly imported in our tests. To that end and keeping in mind that `autoSpy` is being imported in the created tests as `import { autoSpy } from 'autoSpy';`. To make that an actual import one could add this line to `tsconfig.json`:
 
@@ -149,12 +208,11 @@ See [here](https://www.typescriptlang.org/docs/handbook/module-resolution.html#p
 -   [ ] Allow configuration via file (.scuri.json)
 -   [ ] ([workaround](#autospy-path-in-tsconfigjson)) Import `autoSpy` function automatically - now imported as `import { autoSpy } from 'autoSpy';`
 
+## S.C.u.r.i. <a id="scuri-name" href="#scuri-name">\*</a>
 
-## S.C.u.r.i. <a id="scuri-name" href="#scuri-name">*</a>
 What's with the name?
 
 A spec generator schematic - **S**pec **C**reate **U**pdate **R**ead (class - component, service, directive and dependencies) **I**ncorporate (them in the spec generated/updated)
-
 
 ## 🐱‍💻 Troubleshooting
 
@@ -177,17 +235,33 @@ npx schematics scuri:spec --name src/app/app.component.ts
 
 ## Contributing
 
+### Linux/Mac
+
+Keep in mind examples are using windows style folder structure `\my\folder\structure\` which would need to be changed to `/my/folder/structure/` on Linux/Mac
+
+### Scuri-examples are a separate repo
+
+Due to constant security issues, moving the examples in a separate repository. In order to test out the library examples contain older versions of packages and naturally get security issues discovered. It is out of scope for the main package to fix the security issues in Angular 5 example app. Still we'd like to NOT have an outstanding number of unfixed security issues to appeal to users. Hence the move.
+
+Please keep in mind the separate repository and clone it to do the testing - `git clone https://github.com/gparlkov/scuri-examples`. The examples assume that the two repos are cloned in adjacent folders
+
+```
+|--scuri
+|--scuri-examples
+```
+
 ### Clone and run
 
 In this example I clone `https://github.com/gparlakov/scuri`. If you want to contribute fork and clone your own forked repo.
 
 ```
 git clone https://github.com/gparlakov/scuri
+git clone https://github.com/gparlkov/scuri-examples
 cd scuri
 npm install
 npm install -g @angular-devkit/schematics-cli
 npm run build
-schematics .:spec --name example/example.component.ts
+schematics .:spec --name ../scuri-examples/example.component.ts
 ```
 
 Or use the package.json/scripts setup for the day-to-day development to speed things up instead of the **last three lines** from above example: `npm run build.run -- --force --dry-run false`
@@ -200,9 +274,9 @@ Or use the package.json/scripts setup for the day-to-day development to speed th
 In this example I'm using the `example/angular-5-app` bundled with this repo. Feel free to use any Angular application you work on
 
 ```
-cd #into-my-scuri-cloned-src-folder
+cd scuri
 npm link
-cd example\angular-5-app
+cd ..\scuri-examples\angular-5-app
 npm link scuri
 ng g scuri:spec --name src/app/app.component.ts --force
 ```
@@ -230,3 +304,42 @@ npm run watch.test
 ```
 
 Will do the same as above but will also **watch** for file changes and **re-run** the tests.
+
+### Unit test naming convention
+
+Try and create test files per use case:
+`spec-without-setup-function` - will house all tests for that use case.
+
+Begin specs with:
+
+-   `spec-create.` - scuri:spec (ex. `spec.spec.ts` - deprecated - not named by per-use-case-name-convention above)
+-   `spec-update.` - scuri:spec --update (ex `spec-update.testbed-tests.spec.ts`)
+-   `all.` - both of the above - when use case covers both create and update spec
+
+## SCuri for enterprise
+
+Available as part of the Tidelift Subscription
+
+The maintainers of SCuri and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. [Learn more.](https://tidelift.com/subscription/pkg/npm-scuri?utm_source=npm-scuri&utm_medium=referral&utm_campaign=enterprise&utm_term=repo)
+
+## Contributors ✨
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/gparlakov"><img src="https://avatars0.githubusercontent.com/u/3482199?v=4" width="80px;" alt=""/><br /><sub><b>Georgi Parlakov</b></sub></a><br /><a href="https://github.com/Georgi Parlakov/scuri/commits?author=gparlakov" title="Code">💻</a> <a href="#ideas-gparlakov" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/Georgi Parlakov/scuri/commits?author=gparlakov" title="Documentation">📖</a> <a href="https://github.com/Georgi Parlakov/scuri/commits?author=gparlakov" title="Tests">⚠️</a></td>
+    <td align="center"><a href="https://github.com/tziyang-lum"><img src="https://avatars3.githubusercontent.com/u/56020413?v=4" width="80px;" alt=""/><br /><sub><b>Tzi Yang</b></sub></a><br /><a href="https://github.com/Georgi Parlakov/scuri/issues?q=author%3Atziyang-lum" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="https://github.com/fgisslen"><img src="https://avatars0.githubusercontent.com/u/35102084?v=4" width="80px;" alt=""/><br /><sub><b>fgisslen</b></sub></a><br /><a href="https://github.com/Georgi Parlakov/scuri/issues?q=author%3Afgisslen" title="Bug reports">🐛</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
