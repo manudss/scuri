@@ -1,10 +1,18 @@
 import * as ts from '../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript';
-import {tokenToString} from "../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript";
+import {
+    tokenToString
+} from '../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript';
+import {
+    ClassDescription,
+    ConstructorParam, indirectOutput,
+    methodeType,
+    methodParams,
+    propertiesList,
+    propertiesType
+} from './read-class.model';
 
-let program;
-let typeChecker: ts.TypeChecker;
-
-
+/*let program;
+let this.typeChecker: ts.TypeChecker;*/
 
 
 /**
@@ -28,164 +36,180 @@ let typeChecker: ts.TypeChecker;
  * @param fileName the name of the file (required by ts API)
  * @param fileContents contents of the file
  */
-export function readClassNamesAndConstructorParams(
-    fileName: string,
-    fileContents: string
-): ClassDescription[] {
-    const sourceFile = ts.createSourceFile(fileName, fileContents, ts.ScriptTarget.ES2015, true);
-    // Build a program using the set of root file names in fileNames
-    program = ts.createProgram([fileName],{});
+export class ReadClass {
+    private sourceFile: ts.SourceFile;
+    private program: ts.Program;
+    private typeChecker: ts.TypeChecker;
+    private properties: propertiesList = {};
 
-    // Get the checker, we will use it to find more about classes
-    typeChecker = program.getTypeChecker();
 
-    const res = read(sourceFile);
-    const enrichedRes = res.map(r => ({
-        ...r,
-        constructorParams: addImportPaths(r.constructorParams, fileContents)
-    }));
-    return enrichedRes;
-}
+    constructor(
+        private fileName: string,
+        private fileContents: string
+    ){
+        this.sourceFile = ts.createSourceFile(this.fileName, fileContents, ts.ScriptTarget.ES2015, true);
+        // Build a program using the set of root file names in fileNames
+        this.program = ts.createProgram([this.fileName],{});
 
-function read(node: ts.Node) {
-    let result: ClassDescription[] = [];
-    if (node.kind === ts.SyntaxKind.ClassDeclaration) {
-        const classDeclaration = node as ts.ClassDeclaration;
-        const className = classDeclaration.name != null ? classDeclaration.name.getText() : 'default';
-        const methods = readPublicMethods(node as ts.ClassDeclaration, className);
-        result = [
-            {
-                name: className,
-                constructorParams: readConstructorParams(node as ts.ClassDeclaration),
-                publicMethods: methods.map<string>(m => m.name),
-                methods: methods
+        // Get the checker, we will use it to find more about classes
+        this.typeChecker = this.program.getTypeChecker();
+    }
+    
+    public process(): ClassDescription[]  {
+        const res = this.read(this.sourceFile);
+        const enrichedRes = res.map(r => ({
+            ...r,
+            constructorParams: this.addImportPaths(r.constructorParams, this.fileContents)
+        }));
+        return enrichedRes;
+    }
+
+
+    private read(node: ts.Node) {
+        let result: ClassDescription[] = [];
+        if (node.kind === ts.SyntaxKind.ClassDeclaration) {
+            const classDeclaration = node as ts.ClassDeclaration;
+            const className = classDeclaration.name != null ? classDeclaration.name.getText() : 'default';
+            const methods = this.readPublicMethods(node as ts.ClassDeclaration, className);
+            result = [
+                {
+                    name: className,
+                    constructorParams: this.readConstructorParams(node as ts.ClassDeclaration),
+                    publicMethods: methods.map<string>(m => m.name),
+                    methods: methods,
+                    properties: this.properties
+                }
+            ];
+            // console.log ('result : ', result);
+        }
+
+        ts.forEachChild(node, n => {
+            const r = this.read(n);
+            if (r && r.length > 0) {
+                result = result.concat(r);
             }
-        ];
-        // console.log ('result : ', result);
+        });
+
+
+
+        return result;
     }
 
-    ts.forEachChild(node, n => {
-        const r = read(n);
-        if (r && r.length > 0) {
-            result = result.concat(r);
-        }
-    });
+    private readConstructorParams(node: ts.ClassDeclaration): ConstructorParam[] {
+        let params: ConstructorParam[] = [];
 
-      
+        ts.forEachChild(node, node => {
+            if (node.kind === ts.SyntaxKind.Constructor) {
+                const constructor = node as ts.ConstructorDeclaration;
 
-    return result;
-}
-
-function readConstructorParams(node: ts.ClassDeclaration): ConstructorParam[] {
-    let params: ConstructorParam[] = [];
-
-    ts.forEachChild(node, node => {
-        if (node.kind === ts.SyntaxKind.Constructor) {
-            const constructor = node as ts.ConstructorDeclaration;
-
-            params = constructor.parameters.map(p => ({
-                name: p.name.getText(),
-                type: (p.type && p.type.getText()) || 'any' // the type of constructor param or any if not passe
-            }));
-        }
-    });
-    return params;
-}
-
-function readPublicMethods(node: ts.ClassDeclaration, className: string): methodeType[] {
-    let publicMethods: methodeType[] = [];
-
-    ts.forEachChild(node, node => {
-        if (node.kind === ts.SyntaxKind.MethodDeclaration) {
-            const method = node as ts.MethodDeclaration;
-
-            const func = constructMethodType(method, className);
-
-            if (methodIsPublic(method)) {
-                publicMethods.push(func);
+                params = constructor.parameters.map(p => ({
+                    name: p.name.getText(),
+                    type: (p.type && p.type.getText()) || 'any' // the type of constructor param or any if not passe
+                }));
             }
+        });
+        return params;
+    }
+
+    private readPublicMethods(node: ts.ClassDeclaration, className: string): methodeType[] {
+        let publicMethods: methodeType[] = [];
+
+        ts.forEachChild(node, node => {
+            if (node.kind === ts.SyntaxKind.MethodDeclaration) {
+                const method = node as ts.MethodDeclaration;
+
+                const func = this.constructMethodType(method, className);
+
+                if (this.methodIsPublic(method)) {
+                    publicMethods.push(func);
+                }
+            } else if (node.kind === ts.SyntaxKind.PropertyDeclaration) {
+
+                const property = this.computeProperties(node as ts.PropertyDeclaration, className);
+                this.properties[property.name] = property;
+                console.log ('PropertyDeclaration :', property);
+            }
+        });
+        return publicMethods;
+    }
+
+    private constructMethodType(methodNode: ts.MethodDeclaration, className: string): methodeType {
+
+        let method: methodeType = {name: methodNode.name.getText(), parentClass: className};
+
+        method.params = methodNode.parameters.map<methodParams>(this.constructMethodParams);
+        const flags: ts.ModifierFlags = ts.getCombinedModifierFlags(methodNode);
+
+        method = this.computeReturnType(method, methodNode);
+        method = this.computeMethodBody(method, methodNode);
+
+
+        // check if the private flag is part of this binary flag - if not means the method is public
+        if ((flags & ts.ModifierFlags.Private) === ts.ModifierFlags.Private) {
+            method.isPublic = false;
+            method.type = 'private';
+        } else if ((flags & ts.ModifierFlags.Protected) === ts.ModifierFlags.Protected) {
+            method.isPublic = false;
+            method.type = 'protected';
+        } else {
+            method.isPublic = true;
+            method.type = 'public';
         }
-    });
-    return publicMethods;
-}
 
-function constructMethodType(methodNode: ts.MethodDeclaration, className: string): methodeType {
-
-    let method: methodeType = {name: methodNode.name.getText(), parentClass: className};
-
-    method.params = methodNode.parameters.map<methodParams>(constructMethodParams);
-    const flags: ts.ModifierFlags = ts.getCombinedModifierFlags(methodNode);
-
-    method = computeReturnType(method, methodNode);
-    method = computeMethodBody(method, methodNode);
+        // console.log('methodType :', method);
 
 
-    // check if the private flag is part of this binary flag - if not means the method is public
-    if ((flags & ts.ModifierFlags.Private) === ts.ModifierFlags.Private) {
-      method.isPublic = false;
-      method.type = 'private';
-    } else if ((flags & ts.ModifierFlags.Protected) === ts.ModifierFlags.Protected) {
-      method.isPublic = false;
-      method.type = 'protected';
-    } else {
-      method.isPublic = true;
-      method.type = 'public';
+        return method;
     }
 
-    // console.log('methodType :', method);
+    private constructMethodParams(p: ts.ParameterDeclaration): methodParams {
+        let defaultValue: string;
+        const type: string = (p.type && p.type.getText()) || 'any';
+
+        switch(type) {
+            case 'string':
+                defaultValue = "''";
+                break;
+
+            case 'number':
+                defaultValue = '0';
+                break;
+
+            case 'boolean':
+                defaultValue = 'false';
+                break;
+
+            case 'any':
+                defaultValue = 'null';
+                break;
+
+            default:
+                defaultValue = '{}';
+        }
 
 
-    return method;
-}
-
-function constructMethodParams(p: ts.ParameterDeclaration): methodParams {
-    let defaultValue: string;
-    const type: string = (p.type && p.type.getText()) || 'any';
-
-    switch(type) {
-        case 'string':
-            defaultValue = "''";
-            break;
-
-        case 'number':
-            defaultValue = '0';
-            break;
-
-        case 'boolean':
-            defaultValue = 'false';
-            break;
-
-        case 'any':
-            defaultValue = 'null';
-            break;
-
-        default: 
-            defaultValue = '{}';
+        return {
+            name: p.name.getText(),
+            defaultValue,
+            type  // the type of constructor param or any if not passe
+        };
     }
 
+    private computeMethodBody(method: methodeType, methodNode: ts.MethodDeclaration) {
 
-    return {
-                name: p.name.getText(),
-                defaultValue,
-                type  // the type of constructor param or any if not passe
-            };
-}
-
-function computeMethodBody(method: methodeType, methodNode: ts.MethodDeclaration) {
-
-    if (methodNode && methodNode.body && methodNode.body.statements) {
-        methodNode.body.statements.every((statement, index) => {
-            console.log(`Statement (${index}) :`, statement.kind, tokenToString(statement.kind), statement.getFullText());
+        if (methodNode && methodNode.body && methodNode.body.statements) {
+            methodNode.body.statements.every((statement, index) => {
+                console.log(`Statement (${index}) :`, statement.kind, tokenToString(statement.kind), statement.getFullText());
 
 
 
-            switch (statement.kind) {
-                case ts.SyntaxKind.EmptyStatement:
-                    console.log('Statement : EmptyStatement');
-                    break;
+                switch (statement.kind) {
+                    case ts.SyntaxKind.EmptyStatement:
+                        console.log('Statement : EmptyStatement');
+                        break;
                     case ts.SyntaxKind.ExpressionStatement:
                         console.log('Statement : ExpressionStatement');
-                        computeExpressionStatement(method, (statement as ts.ExpressionStatement).expression);
+                        this.computeExpressionStatement(method, (statement as ts.ExpressionStatement).expression);
                         break;
                     case ts.SyntaxKind.IfStatement:
                         console.log('Statement : IfStatement');
@@ -230,133 +254,174 @@ function computeMethodBody(method: methodeType, methodNode: ts.MethodDeclaration
                         console.log('Statement : TryStatement');
                         break;
 
-            }
-            return true;
-        });
-    }
-
-
-    return method;
-}
-
-function computeExpressionStatement(method: methodeType, expression: ts.Expression) {
-
-    console.log('Expression Statement : ', expression.getText());
-    if (expression.kind === ts.SyntaxKind.BinaryExpression)  {
-        const binaryExpression: ts.BinaryExpression = (expression as ts.BinaryExpression);
-
-        if (binaryExpression.left && binaryExpression.left.kind === ts.SyntaxKind.PropertyAccessExpression) {
-            if (!method.indirectOutput) method.indirectOutput = [];
-            // @ts-ignore
-            const name = (binaryExpression.left.name)? binaryExpression.left.name.getText() : binaryExpression.left.getLastToken().getText();
-
-            method.indirectOutput.push({
-                name: name,
-                expectStatement: `expect(component.${name}).toEqual(null /** todo **/); // Test indirect output : ${expression.getText()}`,
-                fullText: expression.getText()
-            });
-            // @ts-ignore
-            console.log('Left Expression : ', binaryExpression.left.getText(), binaryExpression.left.getLastToken().getText(), binaryExpression.left.getFirstToken().getText(),  name)
-        }
-    }
-
-
-    return method;
-
-}
-
-function computeReturnType(method: methodeType, methodNode: ts.MethodDeclaration) {
-    // @ts-ignore
-    if (typeChecker) {
-        try {
-            const signature: ts.Signature | undefined = typeChecker.getSignatureFromDeclaration(methodNode);
-            let returnType = null;
-            if (signature) {
-                returnType = typeChecker.getReturnTypeOfSignature(signature);
-
-                switch (returnType.getFlags()) {
-                    case ts.TypeFlags.Any:
-                    case ts.TypeFlags.Unknown:
-                        method.returnType = 'any';
-                        method.hasReturn = true;
-                        break;
-                    case ts.TypeFlags.Void:
-                    case ts.TypeFlags.VoidLike:
-                    case ts.TypeFlags.Never:
-                        method.returnType = 'void';
-                        method.hasReturn = false;
-                        break;
-
-                    default:
-                        method.returnType = typeChecker.typeToString(returnType);
-                        method.hasReturn = true;
-                        break;
                 }
+                return true;
+            });
+        }
+
+
+        return method;
+    }
+
+    private computeExpressionStatement(method: methodeType, expression: ts.Expression) {
+        if (!expression) { return method; }
+
+        console.log('Expression Statement : ', expression.getText());
+        if (expression.kind === ts.SyntaxKind.BinaryExpression)  {
+            const binaryExpression: ts.BinaryExpression = (expression as ts.BinaryExpression);
+
+            if (binaryExpression.left && binaryExpression.left.kind === ts.SyntaxKind.PropertyAccessExpression) {
+                if (!method.indirectOutput) method.indirectOutput = [];
+                // @ts-ignore
+                const name = (binaryExpression.left.name)? binaryExpression.left.name.getText() : binaryExpression.left.getLastToken().getText();
+
+                /*const symbol = this.typeChecker.getTypeAtLocation(binaryExpression);
+                console.log('Symbole : ', symbol);*/
+
+                const items: indirectOutput = {
+                    name: name,
+                    type: (this.properties[name] && this.properties[name].type)? this.properties[name].type as string : '',
+                    expectStatement: `expect(component.${name}).toEqual(null /** todo **/); // Test indirect output : ${expression.getText()}`,
+                    fullText: expression.getText()
+                };
+
+
+                method.indirectOutput.push(items);
+                // @ts-ignore
+                console.log('Left Expression : ', binaryExpression.left.getText(), binaryExpression.left.getLastToken().getText(), binaryExpression.left.getFirstToken().getText(),  name)
             }
+        }
 
-            // const docs = methodNode.jsDoc? methodNode.jsDoc : null; // array of js docs
 
-        } catch (e) {
+        return method;
+
+    }
+
+    private computeReturnType(method: methodeType, methodNode: ts.MethodDeclaration) {
+        // @ts-ignore
+        if (this.typeChecker) {
+            try {
+                const signature: ts.Signature | undefined = this.typeChecker.getSignatureFromDeclaration(methodNode);
+                let returnType = null;
+                if (signature) {
+                    returnType = this.typeChecker.getReturnTypeOfSignature(signature);
+
+                    switch (returnType.getFlags()) {
+                        case ts.TypeFlags.Any:
+                        case ts.TypeFlags.Unknown:
+                            method.returnType = 'any';
+                            method.hasReturn = true;
+                            break;
+                        case ts.TypeFlags.Void:
+                        case ts.TypeFlags.VoidLike:
+                        case ts.TypeFlags.Never:
+                            method.returnType = 'void';
+                            method.hasReturn = false;
+                            break;
+
+                        default:
+                            method.returnType = this.typeChecker.typeToString(returnType);
+                            method.hasReturn = true;
+                            break;
+                    }
+                }
+
+                // const docs = methodNode.jsDoc? methodNode.jsDoc : null; // array of js docs
+
+            } catch (e) {
+                method.returnType = '';
+                method.hasReturn = false;
+            }
+        } else {
             method.returnType = '';
             method.hasReturn = false;
         }
-    } else {
-        method.returnType = '';
-        method.hasReturn = false;
+        return method;
     }
-    return method;
+
+    private methodIsPublic(methodNode: ts.MethodDeclaration) {
+        const flags = ts.getCombinedModifierFlags(methodNode);
+        // check if the private flag is part of this binary flag - if not means the method is public
+        return (
+            (flags & ts.ModifierFlags.Private) !== ts.ModifierFlags.Private &&
+            (flags & ts.ModifierFlags.Protected) !== ts.ModifierFlags.Protected
+        );
+    }
+
+    private addImportPaths(params: ConstructorParam[], fullText: string): ConstructorParam[] {
+        return params.map(p => {
+            const match = fullText.match(new RegExp(`import.*${p.type}.*from.*('|")(.*)('|")`)) || [];
+            return { ...p, importPath: match[2] }; // take the 2 match     1-st^^^  ^^2-nd
+        });
+    }
+
+    private computeProperties(propertiesNode: ts.PropertyDeclaration, className: string): propertiesType {
+
+        let propertiesElement: propertiesType = {name: propertiesNode.name.getText(), parentClass: className};
+
+        const flags: ts.ModifierFlags = ts.getCombinedModifierFlags(propertiesNode);
+
+        this.computepropertiesType(propertiesElement, propertiesNode);
+
+        // check if the private flag is part of this binary flag - if not means the method is public
+        if ((flags & ts.ModifierFlags.Private) === ts.ModifierFlags.Private) {
+            propertiesElement.isPublic = false;
+            propertiesElement.modifier = 'private';
+        } else if ((flags & ts.ModifierFlags.Protected) === ts.ModifierFlags.Protected) {
+            propertiesElement.isPublic = false;
+            propertiesElement.modifier = 'protected';
+        } else {
+            propertiesElement.isPublic = true;
+            propertiesElement.modifier = 'public';
+        }
+
+        // console.log('methodType :', method);
+
+
+        return propertiesElement;
+    }
+
+    private computepropertiesType(propertiesElement: propertiesType, propertiesNode: ts.PropertyDeclaration) {
+        // @ts-ignore
+        if (this.typeChecker && propertiesNode.type) {
+            try {
+                const propertyType: ts.Type | undefined = this.typeChecker.getTypeFromTypeNode(propertiesNode.type);
+
+                if (propertyType) {
+                    switch (propertyType.getFlags()) {
+                        case ts.TypeFlags.Any:
+                        case ts.TypeFlags.Unknown:
+                            propertiesElement.type = 'any';
+                            break;
+                        case ts.TypeFlags.Void:
+                        case ts.TypeFlags.VoidLike:
+                        case ts.TypeFlags.Never:
+                            propertiesElement.type = 'void';
+                            break;
+
+                        default:
+                            propertiesElement.type = this.typeChecker.typeToString(propertyType);
+                            break;
+                    }
+                }
+
+                // const docs = methodNode.jsDoc? methodNode.jsDoc : null; // array of js docs
+
+            } catch (e) {
+                propertiesElement.returnType = '';
+                propertiesElement.hasReturn = false;
+            }
+        } else {
+            propertiesElement.returnType = '';
+            propertiesElement.hasReturn = false;
+        }
+        return propertiesElement;
+    }
+
 }
 
-function methodIsPublic(methodNode: ts.MethodDeclaration) {
-    const flags = ts.getCombinedModifierFlags(methodNode);
-    // check if the private flag is part of this binary flag - if not means the method is public
-    return (
-        (flags & ts.ModifierFlags.Private) !== ts.ModifierFlags.Private &&
-        (flags & ts.ModifierFlags.Protected) !== ts.ModifierFlags.Protected
-    );
-}
 
-function addImportPaths(params: ConstructorParam[], fullText: string): ConstructorParam[] {
-    return params.map(p => {
-        const match = fullText.match(new RegExp(`import.*${p.type}.*from.*('|")(.*)('|")`)) || [];
-        return { ...p, importPath: match[2] }; // take the 2 match     1-st^^^  ^^2-nd
-    });
-}
-export type ClassDescription = {
-    name: string;
-    constructorParams: ConstructorParam[];
-    publicMethods: string[];
-    methods: methodeType[];
-};
 
-export type ConstructorParam = {
-    name: string;
-    type: string;
-    importPath?: string;
-};
 
-export class indirectOutput {
-    name: string;
-    fullText: string;
-    expectStatement?: string; // Will compute expect Statement.
-}
 
-export class methodeType {
-    name: string;
-    parentClass?: string;
-    isPublic?: boolean;
-    type?: 'public' | 'private' | 'protected';
-    body?: string;
-    params?: methodParams[];
-    returnType?: string;
-    indirectOutput?: indirectOutput[];
-    hasReturn?: boolean;
-    [key: string]: any;
-}
 
-export type methodParams = {
-    name: string;
-    type: string,    
-    importPath?: string;
-    defaultValue?: any;
-}

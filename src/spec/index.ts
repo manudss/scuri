@@ -12,7 +12,7 @@ import {
 } from '@angular-devkit/schematics';
 import { EOL } from 'os';
 import { Change, InsertChange, RemoveChange } from '../../lib/utility/change';
-import { readClassNamesAndConstructorParams } from './read/read';
+import { ReadClass } from './read/read';
 import { addMissing, update as updateFunc } from './update/update';
 import {findModule} from "../../lib/utility/find-module";
 import * as ts from "../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript";
@@ -306,10 +306,10 @@ function createNewSpec(name: string, tree: Tree, logger: Logger, type: string = 
 }
 
 function parseClassUnderTestFile(name: string, fileContents: Buffer) {
-    const classDescriptions = readClassNamesAndConstructorParams(
+    const classDescriptions = new ReadClass(
         name,
         fileContents.toString('utf8')
-    );
+    ).process();
     // we'll take the first class with any number of constructor params or just the first if there are none
     const classWithConstructorParamsOrFirst =
         classDescriptions.filter(c => c.constructorParams.length > 0)[0] || classDescriptions[0];
