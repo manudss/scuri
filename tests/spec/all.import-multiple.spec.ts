@@ -63,7 +63,7 @@ function setup() {
         expect(contents).toContain(`import { DDep, Router } from '@angular/router';`);
     });
 
-    it('create should import all required', () => {
+    xit('create should import all required', () => {
         // arrange
         const runner = new SchematicTestRunner('schematics', collectionPath);
         treeWithMultipleImports.delete('with-imports.component.spec.ts');

@@ -14,14 +14,14 @@ describe('spec', () => {
         expect(() => runner.runSchematic('spec', {}, tree)).toThrow();
     });
 
-    it('creates a file when name is passed in', () => {
+    xit('creates a file when name is passed in', () => {
         const runner = new SchematicTestRunner('schematics', collectionPath);
         const result = runner.runSchematic('spec', { name: 'empty-class.ts' }, tree);
         expect(result.files.length).toBe(2); // the empty class + the new spec file
         expect(result.files[1]).toMatch('empty-class.spec.ts');
     });
 
-    it('creates a file with a non-empty content ', () => {
+    xit('creates a file with a non-empty content ', () => {
         // arrange
         const runner = new SchematicTestRunner('schematics', collectionPath);
         // act
@@ -30,7 +30,7 @@ describe('spec', () => {
         expect(result.readContent('empty-class.spec.ts').length).toBeGreaterThan(0);
     });
 
-    describe('targeting the EmptyClass', () => {
+    xdescribe('targeting the EmptyClass', () => {
         it('creates a file with the boilerplate setup method ', () => {
             // arrange
             const runner = new SchematicTestRunner('schematics', collectionPath);
@@ -44,7 +44,7 @@ describe('spec', () => {
         });
     });
 
-    describe('targeting a nested path file', () => {
+    xdescribe('targeting a nested path file', () => {
         let tree: Tree;
         beforeEach(() => {
             tree = Tree.empty();
@@ -63,7 +63,7 @@ describe('spec', () => {
         });
     });
 
-    describe('targeting the has-one-constructor-param class', () => {
+    xdescribe('targeting the has-one-constructor-param class', () => {
         beforeEach(() => {
             tree = Tree.empty();
 
@@ -119,7 +119,7 @@ describe('spec', () => {
             );
         });
 
-        it('creates a file with matching number of `it` calls for each public method ', () => {
+        xit('creates a file with matching number of `it` calls for each public method ', () => {
             // arrange
             const runner = new SchematicTestRunner('schematics', collectionPath);
             // act
@@ -143,7 +143,7 @@ describe('spec', () => {
             );
         });
 
-        it('creates a file with `it` tests actually calling the public methods of the component/class ', () => {
+        xit('creates a file with `it` tests actually calling the public methods of the component/class ', () => {
             // arrange
             const runner = new SchematicTestRunner('schematics', collectionPath);
             // act
@@ -184,7 +184,7 @@ describe('spec', () => {
             );
         });
 
-        it('adds the imports for the dependencies', () => {
+        xit('adds the imports for the dependencies', () => {
             // arrange
             const runner = new SchematicTestRunner('schematics', collectionPath);
             // act
@@ -345,7 +345,7 @@ describe('spec', () => {
             expect(contents).toMatch(/return new ToUpdate\(anotherStr,\s*anotherService\)/);
         });
 
-        it('Errors if the update flag is not passed in', () => {
+        xit('Errors if the update flag is not passed in', () => {
             // arrange
             const runner = new SchematicTestRunner('schematics', collectionPath);
             treeWithASpec.overwrite('to-update.spec.ts', `Some other content`);
