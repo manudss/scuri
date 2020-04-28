@@ -101,11 +101,43 @@ export class ReadClass {
         ts.forEachChild(node, node => {
             if (node.kind === ts.SyntaxKind.Constructor) {
                 const constructor = node as ts.ConstructorDeclaration;
+                constructor;
+                params = constructor.parameters.map(p => {
+                    p;
+                    const flags: ts.ModifierFlags = ts.getCombinedModifierFlags(p);
 
-                params = constructor.parameters.map(p => ({
-                    name: p.name.getText(),
-                    type: (p.type && p.type.getText()) || 'any' // the type of constructor param or any if not passe
-                }));
+                    const constructorParam: ConstructorParam = {
+                        name: p.name.getText(),
+                        type: (p.type && p.type.getText()) || 'any' // the type of constructor param or any if not passe
+                    };
+
+
+                    // check if the private flag is part of this binary flag - if not means the method is public
+                    if (flags) {
+                        if ((flags & ts.ModifierFlags.Private) === ts.ModifierFlags.Private) {
+                            constructorParam.isPublic = false;
+                            constructorParam.modifier = 'private';
+                        } else if ((flags & ts.ModifierFlags.Protected) === ts.ModifierFlags.Protected) {
+                            constructorParam.isPublic = false;
+                            constructorParam.modifier = 'protected';
+                        } else {
+                            constructorParam.isPublic = true;
+                            constructorParam.modifier = 'public';
+                        }
+                        // Save this params as properties in class properties
+                        const propertie: propertiesType = {name: constructorParam.name, isPublic: constructorParam.isPublic,
+                            modifier: constructorParam.modifier, type: constructorParam.type};
+                        this.addPropertie(propertie);
+
+                    } else {
+                        constructorParam.isPublic = false;
+                        constructorParam.type = 'none';
+                    }
+
+
+
+                    return constructorParam;
+                });
             }
         });
         return params;
@@ -126,11 +158,15 @@ export class ReadClass {
             } else if (node.kind === ts.SyntaxKind.PropertyDeclaration) {
 
                 const property = this.computeProperties(node as ts.PropertyDeclaration, className);
-                this.properties[property.name] = property;
+                this.addPropertie(property);
                 console.log ('PropertyDeclaration :', property);
             }
         });
         return publicMethods;
+    }
+
+    private addPropertie(property: propertiesType) {
+        this.properties[property.name] = property;
     }
 
     private constructMethodType(methodNode: ts.MethodDeclaration, className: string): methodeType {
@@ -147,16 +183,17 @@ export class ReadClass {
         // check if the private flag is part of this binary flag - if not means the method is public
         if ((flags & ts.ModifierFlags.Private) === ts.ModifierFlags.Private) {
             method.isPublic = false;
-            method.type = 'private';
+            method.modifier = 'private';
         } else if ((flags & ts.ModifierFlags.Protected) === ts.ModifierFlags.Protected) {
             method.isPublic = false;
-            method.type = 'protected';
+            method.modifier = 'protected';
         } else {
             method.isPublic = true;
-            method.type = 'public';
+            method.modifier = 'public';
         }
 
         // console.log('methodType :', method);
+
 
 
         return method;

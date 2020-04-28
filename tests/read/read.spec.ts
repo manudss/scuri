@@ -96,7 +96,7 @@ describe('ReadClass', () => {
             ],
             parentClass: 'ExampleComponent',
             returnType: '',
-            type: 'public'
+            modifier: 'public'
         }]);
         expect(firstClass.name).toEqual('ExampleComponent');
         expect(firstClass.properties).toEqual({
@@ -153,17 +153,33 @@ describe('ReadClass', () => {
         const firstClass = classDef[0];
 
         expect(firstClass.constructorParams).toEqual([
-            { importPath: '../myservice', name: 'service1', type: 'MyService' },
+            {
+                importPath: '../myservice',
+                isPublic: false,
+                modifier: 'private',
+                name: 'service1',
+                type: 'MyService'
+            },
             {
                 importPath: '../otherservice',
+                isPublic: true,
+                modifier: 'public',
                 name: 'service',
                 type: 'OtherService'
             }
         ]);
         expect(firstClass.methods).toEqual([]);
         expect(firstClass.name).toEqual('ExampleComponent');
-        expect(firstClass.properties).toEqual({
-        });
+        expect(firstClass.properties).toEqual({ service:
+                { isPublic: true,
+                    modifier: 'public',
+                    name: 'service',
+                    type: 'OtherService' },
+            service1:
+                { isPublic: false,
+                    modifier: 'private',
+                    name: 'service1',
+                    type: 'MyService' } });
         expect(firstClass.publicMethods).toEqual([]);
     });
 

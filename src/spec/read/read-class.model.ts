@@ -9,6 +9,8 @@ export type ClassDescription = {
 export type ConstructorParam = {
     name: string;
     type: string;
+    modifier?: modifierFlags;
+    isPublic?: boolean;
     importPath?: string;
 };
 
@@ -23,7 +25,7 @@ export class methodeType {
     name: string;
     parentClass?: string;
     isPublic?: boolean;
-    type?: 'public' | 'private' | 'protected';
+    modifier?: modifierFlags;
     body?: string;
     params?: methodParams[];
     returnType?: string;
@@ -44,9 +46,11 @@ export class propertiesType {
     name: string;
     isPublic?: boolean;
     parentClass?: string;
-    modifier?: 'public' | 'private' | 'protected';
+    modifier?: modifierFlags;
     type?: string;
     [key: string]: any;
 }
+
+export type modifierFlags = 'public' | 'private' | 'protected' | 'none';
 
 export type propertiesList = {[name: string]: propertiesType};
