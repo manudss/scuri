@@ -119,7 +119,7 @@ describe('spec', () => {
             );
         });
 
-        xit('creates a file with matching number of `it` calls for each public method ', () => {
+        it('creates a file with matching number of `it` calls for each public method ', () => {
             // arrange
             const runner = new SchematicTestRunner('schematics', collectionPath);
             // act
@@ -143,7 +143,7 @@ describe('spec', () => {
             );
         });
 
-        xit('creates a file with `it` tests actually calling the public methods of the component/class ', () => {
+        it('creates a file with `it` tests actually calling the public methods of the component/class ', () => {
             // arrange
             const runner = new SchematicTestRunner('schematics', collectionPath);
             // act
@@ -184,7 +184,7 @@ describe('spec', () => {
             );
         });
 
-        xit('adds the imports for the dependencies', () => {
+        it('adds the imports for the dependencies', () => {
             // arrange
             const runner = new SchematicTestRunner('schematics', collectionPath);
             // act
@@ -193,8 +193,6 @@ describe('spec', () => {
                 { name: 'with-imports.component.ts' },
                 treeImports
             );
-            // assert
-            const contents = result.readContent('with-imports.component.spec.ts');
             expect(contents).toMatch(`import { Router } from '@angular/core';`);
             expect(contents).toMatch(`import { ADep } from '../../deps/a-dep.ts';`);
             expect(contents).toMatch(
@@ -306,7 +304,7 @@ describe('spec', () => {
                 treeWithASpec
             );
             // assert
-            const contents = result.readContent('to-update.spec.ts');
+            const contents = result.readContent('to-update.spec.ts');//?
 
             expect(contents.includes('let anotherStr: string;')).toBe(true);
             expect(contents.includes('const anotherService = autoSpy(Service);')).toBe(true);

@@ -178,10 +178,11 @@ function declareNewDependencies(
 
     const position = setupBlockContent.getStart();
     return toAdd.map(
-        p =>
+        p => {
+            console.log('parameters', p); //?
             // if we are 'mocking' a simple/native type - let c: string; / let c: Object; - leave the instantiation till later
             // if it's a complex type -> const c = autoSpy(Service);
-            new InsertChange(
+            return new InsertChange(
                 path,
                 position,
                 p.type === 'string' ||
@@ -192,6 +193,8 @@ function declareNewDependencies(
                     ? `let ${p.name}: ${p.type};` + leadingIndent
                     : `const ${p.name} = autoSpy(${p.type});` + leadingIndent
             )
+        }
+
     );
 }
 

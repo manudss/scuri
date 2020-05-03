@@ -4,7 +4,7 @@ import {
 } from '../../../lib/third_party/github.com/Microsoft/TypeScript/lib/typescript';
 import {
     ClassDescription,
-    ConstructorParam, indirectOutput,
+    ConstructorParam, expressionStatement, indirectOutput,
     methodeType,
     methodParams,
     propertiesList,
@@ -131,10 +131,8 @@ export class ReadClass {
 
                     } else {
                         constructorParam.isPublic = false;
-                        constructorParam.type = 'none';
+                        constructorParam.modifier = 'none';
                     }
-
-
 
                     return constructorParam;
                 });
@@ -235,102 +233,129 @@ export class ReadClass {
     private computeMethodBody(method: methodeType, methodNode: ts.MethodDeclaration) {
 
         if (methodNode && methodNode.body && methodNode.body.statements) {
-            methodNode.body.statements.every((statement, index) => {
-                console.log(`Statement (${index}) :`, statement.kind, tokenToString(statement.kind), statement.getFullText());
-
-
-
-                switch (statement.kind) {
-                    case ts.SyntaxKind.EmptyStatement:
-                        console.log('Statement : EmptyStatement');
-                        break;
-                    case ts.SyntaxKind.ExpressionStatement:
-                        console.log('Statement : ExpressionStatement');
-                        this.computeExpressionStatement(method, (statement as ts.ExpressionStatement).expression);
-                        break;
-                    case ts.SyntaxKind.IfStatement:
-                        console.log('Statement : IfStatement');
-                        break;
-                    case ts.SyntaxKind.DoStatement:
-                        console.log('Statement : DoStatement');
-                        break;
-                    case ts.SyntaxKind.WhileStatement:
-                        console.log('Statement : WhileStatement');
-                        break;
-                    case ts.SyntaxKind.ForStatement:
-                        console.log('Statement : ForStatement');
-                        break;
-                    case ts.SyntaxKind.ForInStatement:
-                        console.log('Statement : ForInStatement');
-                        break;
-                    case ts.SyntaxKind.ForOfStatement:
-                        console.log('Statement : ForOfStatement');
-                        break;
-                    case ts.SyntaxKind.ContinueStatement:
-                        console.log('Statement : ContinueStatement');
-                        break;
-                    case ts.SyntaxKind.BreakStatement:
-                        console.log('Statement : BreakStatement');
-                        break;
-                    case ts.SyntaxKind.ReturnStatement:
-                        console.log('Statement : ReturnStatement');
-                        break;
-                    case ts.SyntaxKind.WithStatement:
-                        console.log('Statement : WithStatement');
-                        break;
-                    case ts.SyntaxKind.SwitchStatement:
-                        console.log('Statement : SwitchStatement');
-                        break;
-                    case ts.SyntaxKind.LabeledStatement:
-                        console.log('Statement : LabeledStatement');
-                        break;
-                    case ts.SyntaxKind.ThrowStatement:
-                        console.log('Statement : ThrowStatement');
-                        break;
-                    case ts.SyntaxKind.TryStatement:
-                        console.log('Statement : TryStatement');
-                        break;
-
-                }
-                return true;
-            });
+            if (!method.statements) {
+                method.statements = [];
+            }
+            method.statements.push(this.computeStatements({ statementName: 'default' }, method, methodNode.body.statements));
         }
-
 
         return method;
     }
 
-    private computeExpressionStatement(method: methodeType, expression: ts.Expression) {
-        if (!expression) { return method; }
+    private computeStatements(statement: expressionStatement, method: methodeType, statementDeclaration: ts.NodeArray<ts.Statement>): expressionStatement {
+        statementDeclaration.every((statementNode, index) => {
+            console.log(`Statement (${index}) :`, statementNode.kind, tokenToString(statementNode.kind), statementNode.getFullText());
+
+            statement = this.computeOneStatement(statement, method, statementNode);
+            return true;
+        });
+        return statement;
+    }
+
+    private computeOneStatement(statement: expressionStatement, method: methodeType, statementNode: ts.Statement): expressionStatement {
+        switch (statementNode.kind) {
+            case ts.SyntaxKind.EmptyStatement:
+                console.log('Statement : EmptyStatement');
+                break;
+            case ts.SyntaxKind.ExpressionStatement:
+                console.log('Statement : ExpressionStatement');
+                statement = this.computeExpressionStatement(statement, method, (statementNode as ts.ExpressionStatement).expression);
+                break;
+            case ts.SyntaxKind.IfStatement:
+                console.log('Statement : IfStatement');
+                statementNode; //??
+                statement = this.computeIfExpressionStatement(statement, method, (statementNode as ts.IfStatement));
+                break;
+            case ts.SyntaxKind.DoStatement:
+                console.log('Statement : DoStatement');
+                break;
+            case ts.SyntaxKind.WhileStatement:
+                console.log('Statement : WhileStatement');
+                break;
+            case ts.SyntaxKind.ForStatement:
+                console.log('Statement : ForStatement');
+                break;
+            case ts.SyntaxKind.ForInStatement:
+                console.log('Statement : ForInStatement');
+                break;
+            case ts.SyntaxKind.ForOfStatement:
+                console.log('Statement : ForOfStatement');
+                break;
+            case ts.SyntaxKind.ContinueStatement:
+                console.log('Statement : ContinueStatement');
+                break;
+            case ts.SyntaxKind.BreakStatement:
+                console.log('Statement : BreakStatement');
+                break;
+            case ts.SyntaxKind.ReturnStatement:
+                console.log('Statement : ReturnStatement');
+                break;
+            case ts.SyntaxKind.WithStatement:
+                console.log('Statement : WithStatement');
+                break;
+            case ts.SyntaxKind.SwitchStatement:
+                console.log('Statement : SwitchStatement');
+                break;
+            case ts.SyntaxKind.LabeledStatement:
+                console.log('Statement : LabeledStatement');
+                break;
+            case ts.SyntaxKind.ThrowStatement:
+                console.log('Statement : ThrowStatement');
+                break;
+            case ts.SyntaxKind.TryStatement:
+                console.log('Statement : TryStatement');
+                break;
+
+        }
+        return statement;
+    }
+
+// @ts-ignore
+    private computeExpressionStatement(statement: expressionStatement, method: methodeType, expression: ts.Expression): expressionStatement {
+        if (!expression) { return statement; }
 
         console.log('Expression Statement : ', expression.getText());
         if (expression.kind === ts.SyntaxKind.BinaryExpression)  {
             const binaryExpression: ts.BinaryExpression = (expression as ts.BinaryExpression);
 
             if (binaryExpression.left && binaryExpression.left.kind === ts.SyntaxKind.PropertyAccessExpression) {
-                if (!method.indirectOutput) method.indirectOutput = [];
+                if (!statement.indirectOutput) statement.indirectOutput = [];
                 // @ts-ignore
                 const name = (binaryExpression.left.name)? binaryExpression.left.name.getText() : binaryExpression.left.getLastToken().getText();
 
                 /*const symbol = this.typeChecker.getTypeAtLocation(binaryExpression);
                 console.log('Symbole : ', symbol);*/
 
+                let classPropertie = this.properties[name]? this.properties[name] : null;
                 const items: indirectOutput = {
                     name: name,
-                    type: (this.properties[name] && this.properties[name].type)? this.properties[name].type as string : '',
-                    expectStatement: `expect(component.${name}).toEqual(null /** todo **/); // Test indirect output : ${expression.getText()}`,
+                    type: (classPropertie && classPropertie.type)? classPropertie.type as string : '',
+                    modifier: (classPropertie && classPropertie.modifier)? classPropertie.modifier : 'none',
                     fullText: expression.getText()
                 };
 
 
-                method.indirectOutput.push(items);
+                statement.indirectOutput.push(items);
                 // @ts-ignore
                 console.log('Left Expression : ', binaryExpression.left.getText(), binaryExpression.left.getLastToken().getText(), binaryExpression.left.getFirstToken().getText(),  name)
             }
         }
+        return statement;
+    }
 
+    private computeIfExpressionStatement(statement: expressionStatement, method: methodeType, ifStatement: ts.IfStatement): expressionStatement {
+        if (!ifStatement) { return statement; }
+        if (!method) { return statement; }
 
-        return method;
+        /*console.log('Expression Statement : ', expression.getText());
+        expression; //??
+        const expressionIfStatement = this.computeOneStatement({ statementName: 'if' }, method, ifStatement.thenStatement); //?
+        const expressionStatement = this.computeOneStatement({ statementName: 'if' }, method, expression.thenStatement); //??
+        method.statements.push(expressionStatement);
+        if (expression.elseStatement) {
+            method.statement.push(this.computeOneStatement({statementName: 'else'}, method, expression.elseStatement));
+        }*/
+        return statement;
 
     }
 

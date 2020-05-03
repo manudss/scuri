@@ -17,8 +17,8 @@ export type ConstructorParam = {
 export class indirectOutput {
     name: string;
     fullText: string;
+    modifier?: modifierFlags;
     type: string;
-    expectStatement?: string; // Will compute expect Statement.
 }
 
 export class methodeType {
@@ -29,9 +29,14 @@ export class methodeType {
     body?: string;
     params?: methodParams[];
     returnType?: string;
-    indirectOutput?: indirectOutput[];
+    statements?: expressionStatement[];
     hasReturn?: boolean;
+    [key: string]: any;
+}
 
+export class expressionStatement {
+    statementName?: string;
+    indirectOutput?: indirectOutput[];
     [key: string]: any;
 }
 

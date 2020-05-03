@@ -4,7 +4,7 @@
   "rules": {
     "quotemark": [true, "single", "avoid-escape"],
     "ban": [true, ["fit"], ["fdescribe"]],
-    "no-console": true
+    "no-console": false
   },
   "rulesDirectory": [],
   "linterOptions": { "exclude": ["./example", "./example/angular-5-app"] }
